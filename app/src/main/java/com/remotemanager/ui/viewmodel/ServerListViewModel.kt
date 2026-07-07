@@ -22,33 +22,35 @@ data class ServerListUiState(
     val error: String? = null
 )
 
+private data class FilterState(
+    val type: ConnectionType? = null,
+    val group: String? = null,
+    val query: String = ""
+)
+
 class ServerListViewModel(
     private val repository: ServerRepository
 ) : ViewModel() {
 
     private val _allServers = MutableStateFlow<List<Server>>(emptyList())
     private val _groups = MutableStateFlow<List<String>>(emptyList())
-    private val _searchQuery = MutableStateFlow("")
-    private val _selectedType = MutableStateFlow<ConnectionType?>(null)
-    private val _selectedGroup = MutableStateFlow<String?>(null)
+    private val _filterState = MutableStateFlow(FilterState())
     private val _isLoading = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ServerListUiState> = combine(
         _allServers,
         _groups,
-        _selectedType,
-        _selectedGroup,
-        _searchQuery,
+        _filterState,
         _isLoading,
         _error
-    ) { allServers, groups, type, group, query, loading, error ->
+    ) { allServers, groups, filterState, loading, error ->
         ServerListUiState(
-            servers = filterServers(allServers, type, group, query),
+            servers = filterServers(allServers, filterState.type, filterState.group, filterState.query),
             groups = groups,
-            selectedType = type,
-            selectedGroup = group,
-            searchQuery = query,
+            selectedType = filterState.type,
+            selectedGroup = filterState.group,
+            searchQuery = filterState.query,
             isLoading = loading,
             error = error
         )
@@ -82,15 +84,15 @@ class ServerListViewModel(
     }
 
     fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query
+        _filterState.value = _filterState.value.copy(query = query)
     }
 
     fun onTypeSelected(type: ConnectionType?) {
-        _selectedType.value = type
+        _filterState.value = _filterState.value.copy(type = type)
     }
 
     fun onGroupSelected(group: String?) {
-        _selectedGroup.value = group
+        _filterState.value = _filterState.value.copy(group = group)
     }
 
     fun deleteServer(server: Server) {
