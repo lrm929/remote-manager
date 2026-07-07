@@ -31,7 +31,9 @@ jobs:
           cache-disabled: true
 
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace --info 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          gradle assembleDebug --stacktrace --info 2>&1 | tee build.log
 
       - name: Upload build log on failure
         if: failure()
