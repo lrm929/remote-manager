@@ -41,10 +41,13 @@ jobs:
           path: build.log
           if-no-files-found: ignore
 
+      - name: Find APK files
+        run: find app/build/outputs -type f -name "*.apk" -print
+
       - name: Upload debug APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: remote-manager-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
