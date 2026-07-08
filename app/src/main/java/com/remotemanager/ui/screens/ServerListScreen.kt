@@ -51,7 +51,7 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerListScreen(
-    selectedServerId: Long? = null,
+    selectedServerId: Long = 0L,
     onServerClick: (Long) -> Unit,
     onAddServer: () -> Unit,
     viewModel: ServerListViewModel = koinViewModel()

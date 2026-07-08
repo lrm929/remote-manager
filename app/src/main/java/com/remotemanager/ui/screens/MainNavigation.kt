@@ -50,7 +50,7 @@ fun MainNavigation() {
         windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
 
     val navController = rememberNavController()
-    var selectedServerId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedServerId by rememberSaveable { mutableStateOf(0L) }
 
     if (isExpanded) {
         TwoPaneLayout(
@@ -68,6 +68,7 @@ private fun SinglePaneLayout(navController: NavHostController) {
     NavHost(navController = navController, startDestination = Screen.ServerList.route) {
         composable(Screen.ServerList.route) {
             ServerListScreen(
+                selectedServerId = 0L,
                 onServerClick = { serverId ->
                     navController.navigate(Screen.ServerDetail.createRoute(serverId))
                 },
@@ -124,11 +125,11 @@ private fun SinglePaneLayout(navController: NavHostController) {
 
 @Composable
 private fun TwoPaneLayout(
-    selectedServerId: Long?,
+    selectedServerId: Long,
     onServerSelected: (Long) -> Unit,
     navController: NavHostController
 ) {
-    var currentPane by rememberSaveable { mutableStateOf<String?>(null) }
+    var currentPane by rememberSaveable { mutableStateOf("") }
 
     Row(modifier = Modifier.fillMaxSize()) {
         Surface(
@@ -156,25 +157,21 @@ private fun TwoPaneLayout(
         ) {
             when (currentPane) {
                 "edit" -> ServerEditScreen(
-                    serverId = selectedServerId ?: 0,
+                    serverId = selectedServerId,
                     onNavigateBack = {
-                        if (selectedServerId != null && selectedServerId != 0L) {
-                            currentPane = "detail"
-                        } else {
-                            currentPane = null
-                        }
+                        currentPane = if (selectedServerId != 0L) "detail" else ""
                     }
                 )
                 "ssh" -> SshTerminalScreen(
-                    serverId = selectedServerId ?: 0,
+                    serverId = selectedServerId,
                     onNavigateBack = { currentPane = "detail" }
                 )
                 "sftp" -> SftpBrowserScreen(
-                    serverId = selectedServerId ?: 0,
+                    serverId = selectedServerId,
                     onNavigateBack = { currentPane = "detail" }
                 )
                 else -> {
-                    if (selectedServerId != null && selectedServerId != 0L) {
+                    if (selectedServerId != 0L) {
                         ServerDetailScreen(
                             serverId = selectedServerId,
                             onNavigateBack = { onServerSelected(0) },
