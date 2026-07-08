@@ -38,7 +38,7 @@ jobs:
       - name: Extract error summary
         if: failure()
         run: |
-          grep -E "FAILED|error:|Error:|FAILURE|Exception|> Task" build.log | tail -80 > error_summary.txt || true
+          grep -E "^e:|^w:|FAILED|error:|Error:|FAILURE|Exception|> Task" build.log | tail -120 > error_summary.txt || true
           echo "" >> error_summary.txt
           echo "=== Last 80 lines of build.log ===" >> error_summary.txt
           tail -80 build.log >> error_summary.txt
