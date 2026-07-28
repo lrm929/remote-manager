@@ -76,7 +76,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     // EncryptedSharedPreferences
-    implementation("androidx.security:security-crypto:1.0.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // SSH/SFTP - JSch is stable on Android
     implementation("com.jcraft:jsch:0.1.55")
