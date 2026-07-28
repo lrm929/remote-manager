@@ -7,6 +7,7 @@ import com.remotemanager.data.repository.ServerRepository
 import com.remotemanager.ssh.SshConnection
 import com.remotemanager.ssh.SshSessionManager
 import com.remotemanager.ssh.TerminalEmulator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -81,14 +82,18 @@ class SshViewModel(
     }
 
     fun sendCommand(command: String) {
-        connection?.write(command)
-        if (!command.endsWith("\n") && !command.endsWith("\r")) {
-            connection?.write("\n")
+        viewModelScope.launch(Dispatchers.IO) {
+            connection?.write(command)
+            if (!command.endsWith("\n") && !command.endsWith("\r")) {
+                connection?.write("\n")
+            }
         }
     }
 
     fun sendRaw(data: String) {
-        connection?.write(data)
+        viewModelScope.launch(Dispatchers.IO) {
+            connection?.write(data)
+        }
     }
 
     fun disconnect() {

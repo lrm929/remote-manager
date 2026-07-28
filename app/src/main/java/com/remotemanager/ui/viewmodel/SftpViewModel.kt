@@ -123,7 +123,9 @@ class SftpViewModel(
         val ch = channel ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                // 应用私有外部目录，无需存储权限，兼容 Android 10+ 分区存储
+                val downloadsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                    ?: context.filesDir
                 val localFile = File(downloadsDir, file.name)
                 ch.get(file.path, localFile.absolutePath)
                 withContext(Dispatchers.Main) {

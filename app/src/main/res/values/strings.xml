@@ -19,7 +19,7 @@
     <string name="rdp">RDP</string>
     <string name="ssh">SSH</string>
     <string name="required_field">必填</string>
-    <string name="confirm_delete">确定要删除 "%1$s" 吗？</string>
+    <string name="confirm_delete">确定要删除 \"%1$s\" 吗？</string>
     <string name="no_servers">暂无服务器，点击右下角添加</string>
     <string name="rdp_not_installed">未检测到 RDP 客户端，请先安装 Microsoft Remote Desktop 或 aFreeRDP</string>
     <string name="ssh_connecting">正在连接 SSH…</string>

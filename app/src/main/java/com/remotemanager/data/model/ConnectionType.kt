@@ -1,6 +1,6 @@
 package com.remotemanager.data.model
 
-enum class ConnectionType {
-    RDP,
-    SSH
+enum class ConnectionType(val defaultPort: Int) {
+    RDP(3389),
+    SSH(22)
 }
