@@ -1,27 +1,16 @@
 package com.remotemanager.ui.screens
 
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.remotemanager.ui.screens.crt.CrtHomeScreen
 
 sealed class Screen(val route: String) {
     data object ServerList : Screen("servers")
@@ -50,14 +39,9 @@ fun MainNavigation() {
         windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium
 
     val navController = rememberNavController()
-    var selectedServerId by rememberSaveable { mutableStateOf(0L) }
 
     if (isExpanded) {
-        TwoPaneLayout(
-            selectedServerId = selectedServerId,
-            onServerSelected = { selectedServerId = it },
-            navController = navController
-        )
+        CrtHomeScreen()
     } else {
         SinglePaneLayout(navController = navController)
     }
@@ -120,77 +104,5 @@ private fun SinglePaneLayout(navController: NavHostController) {
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-    }
-}
-
-@Composable
-private fun TwoPaneLayout(
-    selectedServerId: Long,
-    onServerSelected: (Long) -> Unit,
-    navController: NavHostController
-) {
-    var currentPane by rememberSaveable { mutableStateOf("") }
-
-    Row(modifier = Modifier.fillMaxSize()) {
-        Surface(
-            modifier = Modifier
-                .widthIn(min = 280.dp, max = 400.dp)
-                .fillMaxHeight(),
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            ServerListScreen(
-                selectedServerId = selectedServerId,
-                onServerClick = { serverId ->
-                    onServerSelected(serverId)
-                    currentPane = "detail"
-                },
-                onAddServer = {
-                    onServerSelected(0)
-                    currentPane = "edit"
-                }
-            )
-        }
-
-        Surface(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            when (currentPane) {
-                "edit" -> ServerEditScreen(
-                    serverId = selectedServerId,
-                    onNavigateBack = {
-                        currentPane = if (selectedServerId != 0L) "detail" else ""
-                    }
-                )
-                "ssh" -> SshTerminalScreen(
-                    serverId = selectedServerId,
-                    onNavigateBack = { currentPane = "detail" }
-                )
-                "sftp" -> SftpBrowserScreen(
-                    serverId = selectedServerId,
-                    onNavigateBack = { currentPane = "detail" }
-                )
-                else -> {
-                    if (selectedServerId != 0L) {
-                        ServerDetailScreen(
-                            serverId = selectedServerId,
-                            onNavigateBack = { onServerSelected(0) },
-                            onEditClick = { currentPane = "edit" },
-                            onSshClick = { currentPane = "ssh" },
-                            onSftpClick = { currentPane = "sftp" }
-                        )
-                    } else {
-                        EmptyDetailPane()
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyDetailPane() {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        // Intentionally empty; could show a placeholder illustration.
     }
 }

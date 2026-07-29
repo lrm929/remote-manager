@@ -57,7 +57,7 @@ import java.util.Locale
 fun SftpBrowserScreen(
     serverId: Long,
     onNavigateBack: () -> Unit,
-    viewModel: SftpViewModel = koinViewModel { parametersOf(serverId) }
+    viewModel: SftpViewModel = koinViewModel(key = "sftp-$serverId") { parametersOf(serverId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

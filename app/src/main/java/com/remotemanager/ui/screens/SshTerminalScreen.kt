@@ -61,7 +61,7 @@ import org.koin.core.parameter.parametersOf
 fun SshTerminalScreen(
     serverId: Long,
     onNavigateBack: () -> Unit,
-    viewModel: SshViewModel = koinViewModel { parametersOf(serverId) }
+    viewModel: SshViewModel = koinViewModel(key = "ssh-$serverId") { parametersOf(serverId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val terminalText by viewModel.terminalText.collectAsState()
