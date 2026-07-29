@@ -12,12 +12,26 @@ android {
         applicationId = "com.remotemanager"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    // release 签名：密钥文件与密码由环境变量提供（CI 从 GitHub Secrets 注入），
+    // 本地未配置环境变量时回退到 debug 签名，保证 assembleRelease 始终可用。
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+            if (!keystorePath.isNullOrBlank()) {
+                storeFile = rootProject.file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS") ?: "remote-manager"
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
@@ -28,6 +42,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = if (System.getenv("KEYSTORE_FILE").isNullOrBlank()) {
+                signingConfigs.getByName("debug")
+            } else {
+                signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
