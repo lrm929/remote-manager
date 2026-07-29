@@ -29,7 +29,7 @@ android {
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = rootProject.file(keystorePath)
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS") ?: "remote-manager"
+                keyAlias = "remote-manager"
                 keyPassword = System.getenv("KEY_PASSWORD")
             }
         }
