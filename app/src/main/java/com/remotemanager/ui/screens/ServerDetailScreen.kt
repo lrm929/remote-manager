@@ -53,7 +53,6 @@ import com.remotemanager.R
 import com.remotemanager.data.model.ConnectionType
 import com.remotemanager.data.model.Server
 import com.remotemanager.data.repository.ServerRepository
-import com.remotemanager.rdp.launchRdp
 import com.remotemanager.ui.theme.NeonCyan
 import com.remotemanager.ui.theme.NeonGreen
 import com.remotemanager.ui.theme.NeonPink
@@ -73,6 +72,7 @@ fun ServerDetailScreen(
     onEditClick: () -> Unit,
     onSshClick: () -> Unit,
     onSftpClick: () -> Unit,
+    onRdpLaunch: () -> Unit,
     repository: ServerRepository = get()
 ) {
     val context = LocalContext.current
@@ -121,7 +121,7 @@ fun ServerDetailScreen(
                 InfoCard(server = s)
                 ActionsCard(
                     server = s,
-                    onRdpLaunch = { launchRdp(context, s) },
+                    onRdpLaunch = onRdpLaunch,
                     onSshClick = onSshClick,
                     onSftpClick = onSftpClick
                 )

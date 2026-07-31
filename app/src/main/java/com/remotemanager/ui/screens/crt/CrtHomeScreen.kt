@@ -83,8 +83,9 @@ import com.remotemanager.ui.theme.NeonPurple
 import com.remotemanager.ui.theme.TechBorder
 import com.remotemanager.ui.theme.TechPanel
 import com.remotemanager.ui.theme.TechSurface
-import com.remotemanager.ui.theme.TechSurfaceElevated
+import com.remotemanager.ui.theme.TextDisabled
 import com.remotemanager.ui.theme.TextSecondary
+import com.remotemanager.ui.theme.TerminalError
 import com.remotemanager.ui.viewmodel.ServerListUiState
 import com.remotemanager.ui.viewmodel.ServerListViewModel
 import org.koin.androidx.compose.koinViewModel
