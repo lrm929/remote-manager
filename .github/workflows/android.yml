@@ -69,6 +69,39 @@ jobs:
             error_summary.txt
           if-no-files-found: ignore
 
+      - name: Post build error to commit comment (diagnostic)
+        if: failure()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os, json, subprocess
+          sha = os.environ['SHA']; token = os.environ['TOKEN']
+          want = ('e:', 'FAILED', 'what went wrong', 'Exception', 'Task :app:compile',
+                  'Unresolved', 'error:', 'w:', 'NotImplemented')
+          lines = []
+          try:
+              with open('build.log', errors='ignore') as f:
+                  for ln in f:
+                      if any(w in ln for w in want):
+                          lines.append(ln.rstrip())
+          except FileNotFoundError:
+              lines = ['(no build.log found)']
+          body = "## Build FAILED for " + sha[:8] + "\n\n```\n" + "\n".join(lines[-250:]) + "\n```"
+          data = json.dumps({"body": body}).encode()
+          r = subprocess.run([
+            "curl","-s","-X","POST",
+            "-H","Authorization: Bearer "+token,
+            "-H","Accept: application/vnd.github+json",
+            "-H","Content-Type: application/json",
+            "https://api.github.com/repos/lrm929/remote-manager/commits/"+sha+"/comments",
+            "--data-binary","@-"
+          ], input=data, capture_output=True, text=True)
+          print("POST out:", r.stdout[:500])
+          print("POST err:", r.stderr[:300])
+          PY
+
       - name: List all outputs
         run: |
           {
