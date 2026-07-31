@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -69,15 +70,14 @@ jobs:
             error_summary.txt
           if-no-files-found: ignore
 
-      - name: Post build error to commit comment (diagnostic)
+      - name: Open issue with build error (diagnostic)
         if: failure()
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
           import os, json, subprocess
-          sha = os.environ['SHA']; token = os.environ['TOKEN']
+          token = os.environ['TOKEN']
           want = ('e:', 'FAILED', 'what went wrong', 'Exception', 'Task :app:compile',
                   'Unresolved', 'error:', 'w:', 'NotImplemented')
           lines = []
@@ -88,17 +88,17 @@ jobs:
                           lines.append(ln.rstrip())
           except FileNotFoundError:
               lines = ['(no build.log found)']
-          body = "## Build FAILED for " + sha[:8] + "\n\n```\n" + "\n".join(lines[-250:]) + "\n```"
-          data = json.dumps({"body": body}).encode()
+          body = "## Build FAILED (auto diagnostic)\n\n```\n" + "\n".join(lines[-250:]) + "\n```"
+          data = json.dumps({"title":"[CI] Build error diagnostic","body":body}).encode()
           r = subprocess.run([
             "curl","-s","-X","POST",
             "-H","Authorization: Bearer "+token,
             "-H","Accept: application/vnd.github+json",
             "-H","Content-Type: application/json",
-            "https://api.github.com/repos/lrm929/remote-manager/commits/"+sha+"/comments",
+            "https://api.github.com/repos/lrm929/remote-manager/issues",
             "--data-binary","@-"
           ], input=data, capture_output=True, text=True)
-          print("POST out:", r.stdout[:500])
+          print("POST out:", r.stdout[:600])
           print("POST err:", r.stderr[:300])
           PY
 
