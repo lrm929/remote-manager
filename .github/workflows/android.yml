@@ -70,14 +70,15 @@ jobs:
             error_summary.txt
           if-no-files-found: ignore
 
-      - name: Open issue with build error (diagnostic)
+      - name: Upload build error to repo file (diagnostic)
         if: failure()
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
-          import os, json, subprocess
-          token = os.environ['TOKEN']
+          import os, json, base64, subprocess
+          token = os.environ['TOKEN']; sha = os.environ['SHA']
           want = ('e:', 'FAILED', 'what went wrong', 'Exception', 'Task :app:compile',
                   'Unresolved', 'error:', 'w:', 'NotImplemented')
           lines = []
@@ -88,18 +89,22 @@ jobs:
                           lines.append(ln.rstrip())
           except FileNotFoundError:
               lines = ['(no build.log found)']
-          body = "## Build FAILED (auto diagnostic)\n\n```\n" + "\n".join(lines[-250:]) + "\n```"
-          data = json.dumps({"title":"[CI] Build error diagnostic","body":body}).encode()
+          body = "## Build FAILED (auto diagnostic)\n\n```\n" + "\n".join(lines[-300:]) + "\n```"
+          content = base64.b64encode(body.encode('utf-8')).decode('ascii')
+          data = json.dumps({
+              "message": "diagnostic: build error [skip ci]",
+              "content": content
+          }).encode('utf-8')
+          fname = "BUILD_ERROR_" + sha + ".txt"
           r = subprocess.run([
-            "curl","-s","-X","POST",
+            "curl","-s","-X","PUT",
             "-H","Authorization: Bearer "+token,
             "-H","Accept: application/vnd.github+json",
             "-H","Content-Type: application/json",
-            "https://api.github.com/repos/lrm929/remote-manager/issues",
+            "https://api.github.com/repos/lrm929/remote-manager/contents/"+fname,
             "--data-binary","@-"
           ], input=data, capture_output=True, text=True)
-          print("POST out:", r.stdout[:600])
-          print("POST err:", r.stderr[:300])
+          print("PUT out:", r.stdout[:600])
           PY
 
       - name: List all outputs
