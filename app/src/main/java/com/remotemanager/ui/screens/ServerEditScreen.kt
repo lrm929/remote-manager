@@ -1,6 +1,8 @@
 package com.remotemanager.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,20 +14,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +44,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,6 +54,13 @@ import com.remotemanager.R
 import com.remotemanager.data.model.ConnectionType
 import com.remotemanager.data.model.Server
 import com.remotemanager.data.repository.ServerRepository
+import com.remotemanager.ui.theme.NeonCyan
+import com.remotemanager.ui.theme.NeonGreen
+import com.remotemanager.ui.theme.NeonPink
+import com.remotemanager.ui.theme.TechBorder
+import com.remotemanager.ui.theme.TechPanel
+import com.remotemanager.ui.theme.TechSurface
+import com.remotemanager.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
 
@@ -137,9 +154,14 @@ fun ServerEditScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TechPanel,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -149,7 +171,7 @@ fun ServerEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.name)) },
@@ -164,7 +186,7 @@ fun ServerEditScreen(
                 }
             })
 
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = host,
                 onValueChange = { host = it },
                 label = { Text(stringResource(R.string.host)) },
@@ -172,7 +194,7 @@ fun ServerEditScreen(
                 singleLine = true
             )
 
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = portText,
                 onValueChange = { portText = it.filter { c -> c.isDigit() } },
                 label = { Text(stringResource(R.string.port)) },
@@ -181,7 +203,7 @@ fun ServerEditScreen(
                 placeholder = { Text(type.defaultPort.toString()) }
             )
 
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
                 label = { Text(stringResource(R.string.username)) },
@@ -195,7 +217,7 @@ fun ServerEditScreen(
             )
 
             if (usePrivateKey) {
-                OutlinedTextField(
+                TechOutlinedTextField(
                     value = privateKey,
                     onValueChange = { privateKey = it },
                     label = { Text(stringResource(R.string.private_key)) },
@@ -204,7 +226,7 @@ fun ServerEditScreen(
                     maxLines = 8
                 )
             } else {
-                OutlinedTextField(
+                TechOutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text(stringResource(R.string.password)) },
@@ -213,7 +235,7 @@ fun ServerEditScreen(
                 )
             }
 
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = group,
                 onValueChange = { group = it },
                 label = { Text(stringResource(R.string.group)) },
@@ -221,7 +243,7 @@ fun ServerEditScreen(
                 singleLine = true
             )
 
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text(stringResource(R.string.description)) },
@@ -247,7 +269,18 @@ fun ServerEditScreen(
 
             Button(
                 onClick = ::save,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NeonCyan.copy(alpha = 0.18f),
+                    contentColor = NeonCyan
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    NeonCyan.copy(alpha = 0.50f)
+                )
             ) {
                 Text(stringResource(R.string.save))
             }
@@ -256,34 +289,105 @@ fun ServerEditScreen(
 }
 
 @Composable
+private fun TechOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        label = label,
+        placeholder = placeholder,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = TechSurface,
+            unfocusedContainerColor = TechSurface,
+            disabledContainerColor = TechSurface,
+            focusedBorderColor = NeonCyan,
+            unfocusedBorderColor = TechBorder,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedLabelColor = NeonCyan,
+            unfocusedLabelColor = TextSecondary,
+            focusedPlaceholderColor = TextSecondary.copy(alpha = 0.7f),
+            unfocusedPlaceholderColor = TextSecondary.copy(alpha = 0.7f)
+        )
+    )
+}
+
+@Composable
 private fun TypeSelector(
     type: ConnectionType,
     onTypeSelected: (ConnectionType) -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        ConnectionType.entries.forEach { option ->
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .selectable(
-                        selected = type == option,
-                        onClick = { onTypeSelected(option) },
-                        role = Role.RadioButton
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "连接类型",
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(TechSurface)
+                .border(1.dp, TechBorder, RoundedCornerShape(12.dp))
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ConnectionType.entries.forEach { option ->
+                val selected = type == option
+                val color = when (option) {
+                    ConnectionType.RDP -> NeonPink
+                    ConnectionType.SSH -> NeonGreen
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (selected) color.copy(alpha = 0.15f) else Color.Transparent)
+                        .border(
+                            width = if (selected) 1.dp else 0.dp,
+                            color = if (selected) color.copy(alpha = 0.50f) else Color.Transparent,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .selectable(
+                            selected = selected,
+                            onClick = { onTypeSelected(option) },
+                            role = Role.RadioButton
+                        )
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    RadioButton(
+                        selected = selected,
+                        onClick = null,
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = color,
+                            unselectedColor = TextSecondary
+                        )
                     )
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = type == option,
-                    onClick = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = when (option) {
-                        ConnectionType.RDP -> stringResource(R.string.rdp)
-                        ConnectionType.SSH -> stringResource(R.string.ssh)
-                    }
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when (option) {
+                            ConnectionType.RDP -> stringResource(R.string.rdp)
+                            ConnectionType.SSH -> stringResource(R.string.ssh)
+                        },
+                        color = if (selected) color else MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
@@ -295,12 +399,24 @@ private fun AuthSelector(
     onToggle: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(TechSurface)
+            .border(1.dp, TechBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("使用私钥认证")
-        Switch(checked = usePrivateKey, onCheckedChange = onToggle)
+        Switch(
+            checked = usePrivateKey,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = NeonCyan,
+                checkedTrackColor = NeonCyan.copy(alpha = 0.40f)
+            )
+        )
     }
 }
 
@@ -315,11 +431,23 @@ private fun RdpOptions(
     useNla: Boolean,
     onNlaChange: (Boolean) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("RDP 选项", style = MaterialTheme.typography.titleSmall)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(TechSurface)
+            .border(1.dp, TechBorder, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "RDP 选项",
+            style = MaterialTheme.typography.titleSmall,
+            color = NeonPink
+        )
 
         Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = widthText,
                 onValueChange = { onWidthChange(it.filter { c -> c.isDigit() }) },
                 label = { Text("宽度") },
@@ -327,7 +455,7 @@ private fun RdpOptions(
                 singleLine = true
             )
             Spacer(modifier = Modifier.width(12.dp))
-            OutlinedTextField(
+            TechOutlinedTextField(
                 value = heightText,
                 onValueChange = { onHeightChange(it.filter { c -> c.isDigit() }) },
                 label = { Text("高度") },
@@ -336,17 +464,15 @@ private fun RdpOptions(
             )
         }
 
-        Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = colorDepth.toString(),
-                onValueChange = {
-                    onColorDepthChange(it.toIntOrNull() ?: 32)
-                },
-                label = { Text("颜色深度") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-        }
+        TechOutlinedTextField(
+            value = colorDepth.toString(),
+            onValueChange = {
+                onColorDepthChange(it.toIntOrNull() ?: 32)
+            },
+            label = { Text("颜色深度") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -354,7 +480,14 @@ private fun RdpOptions(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("启用 NLA 网络级认证")
-            Switch(checked = useNla, onCheckedChange = onNlaChange)
+            Switch(
+                checked = useNla,
+                onCheckedChange = onNlaChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = NeonPink,
+                    checkedTrackColor = NeonPink.copy(alpha = 0.40f)
+                )
+            )
         }
     }
 }

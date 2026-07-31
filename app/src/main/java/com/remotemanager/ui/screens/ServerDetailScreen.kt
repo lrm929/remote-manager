@@ -1,6 +1,8 @@
 package com.remotemanager.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +43,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +54,14 @@ import com.remotemanager.data.model.ConnectionType
 import com.remotemanager.data.model.Server
 import com.remotemanager.data.repository.ServerRepository
 import com.remotemanager.rdp.launchRdp
+import com.remotemanager.ui.theme.NeonCyan
+import com.remotemanager.ui.theme.NeonGreen
+import com.remotemanager.ui.theme.NeonPink
+import com.remotemanager.ui.theme.NeonPurple
+import com.remotemanager.ui.theme.TechBorder
+import com.remotemanager.ui.theme.TechPanel
+import com.remotemanager.ui.theme.TechSurface
+import com.remotemanager.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.get
 
@@ -84,9 +100,14 @@ fun ServerDetailScreen(
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TechPanel,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         server?.let { s ->
             Column(
@@ -138,23 +159,43 @@ fun ServerDetailScreen(
 @Composable
 private fun InfoCard(server: Server) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, TechBorder, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = TechSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            NeonCyan.copy(alpha = 0.05f),
+                            Color.Transparent,
+                            NeonPurple.copy(alpha = 0.03f)
+                        )
+                    )
+                )
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            InfoRow(label = "类型", value = if (server.type == ConnectionType.RDP) "RDP" else "SSH")
+            InfoRow(
+                label = "类型",
+                value = if (server.type == ConnectionType.RDP) "RDP" else "SSH",
+                valueColor = if (server.type == ConnectionType.RDP) NeonPink else NeonGreen
+            )
             InfoRow(label = "主机", value = "${server.host}:${server.port}")
             InfoRow(label = "用户名", value = server.username.ifBlank { "-" })
-            InfoRow(label = "认证", value = when {
-                !server.privateKey.isNullOrBlank() -> "私钥"
-                !server.password.isNullOrBlank() -> "密码"
-                else -> "未配置"
-            })
+            InfoRow(
+                label = "认证",
+                value = when {
+                    !server.privateKey.isNullOrBlank() -> "私钥"
+                    !server.password.isNullOrBlank() -> "密码"
+                    else -> "未配置"
+                }
+            )
             if (!server.group.isNullOrBlank()) {
                 InfoRow(label = "分组", value = server.group)
             }
@@ -175,16 +216,25 @@ private fun InfoCard(server: Server) {
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+private fun InfoRow(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
-            text = "$label：",
+            text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = TextSecondary
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor
         )
     }
 }
@@ -197,29 +247,35 @@ private fun ActionsCard(
     onSftpClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, TechBorder, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = TechSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when (server.type) {
                 ConnectionType.RDP -> {
-                    Button(
+                    TechButton(
                         onClick = onRdpLaunch,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = NeonPink
                     ) {
                         Text("连接远程桌面 (RDP)")
                     }
                 }
                 ConnectionType.SSH -> {
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        Button(
+                        TechButton(
                             onClick = onSshClick,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            containerColor = NeonGreen
                         ) {
                             Text("SSH 终端")
                         }
@@ -234,5 +290,29 @@ private fun ActionsCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TechButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = NeonCyan,
+    content: @Composable () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor.copy(alpha = 0.18f),
+            contentColor = containerColor
+        ),
+        shape = RoundedCornerShape(10.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = containerColor.copy(alpha = 0.50f)
+        )
+    ) {
+        content()
     }
 }

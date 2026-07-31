@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.remotemanager.ui.screens.crt.CrtHomeScreen
+import com.remotemanager.ui.screens.rdp.RdpSessionScreen
 
 sealed class Screen(val route: String) {
     data object ServerList : Screen("servers")
@@ -28,6 +29,10 @@ sealed class Screen(val route: String) {
 
     data object SftpBrowser : Screen("sftp/{serverId}") {
         fun createRoute(serverId: Long) = "sftp/$serverId"
+    }
+
+    data object RdpSession : Screen("rdp/{serverId}") {
+        fun createRoute(serverId: Long) = "rdp/$serverId"
     }
 }
 
@@ -71,7 +76,8 @@ private fun SinglePaneLayout(navController: NavHostController) {
                 onNavigateBack = { navController.popBackStack() },
                 onEditClick = { navController.navigate(Screen.ServerEdit.createRoute(serverId)) },
                 onSshClick = { navController.navigate(Screen.SshTerminal.createRoute(serverId)) },
-                onSftpClick = { navController.navigate(Screen.SftpBrowser.createRoute(serverId)) }
+                onSftpClick = { navController.navigate(Screen.SftpBrowser.createRoute(serverId)) },
+                onRdpLaunch = { navController.navigate(Screen.RdpSession.createRoute(serverId)) }
             )
         }
         composable(
@@ -100,6 +106,16 @@ private fun SinglePaneLayout(navController: NavHostController) {
         ) { backStackEntry ->
             val serverId = backStackEntry.arguments?.getLong("serverId") ?: 0L
             SftpBrowserScreen(
+                serverId = serverId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.RdpSession.route,
+            arguments = listOf(navArgument("serverId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val serverId = backStackEntry.arguments?.getLong("serverId") ?: 0L
+            RdpSessionScreen(
                 serverId = serverId,
                 onNavigateBack = { navController.popBackStack() }
             )

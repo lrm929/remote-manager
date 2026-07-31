@@ -1,5 +1,6 @@
 package com.remotemanager.ui.viewmodel
 
+import android.view.KeyEvent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.remotemanager.data.model.Server
@@ -79,6 +80,53 @@ class SshViewModel(
                 }
             )
         }
+    }
+
+    /**
+     * 处理终端直接输入。支持普通字符、回车、退格、Tab、方向键以及 Ctrl 组合键。
+     */
+    fun onTerminalKeyEvent(event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) return false
+
+        val data = when {
+            // Ctrl + C / D / Z etc.
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C -> "\u0003"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_D -> "\u0004"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_Z -> "\u001A"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A -> "\u0001"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_E -> "\u0005"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_L -> "\u000C"
+            event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_U -> "\u0015"
+
+            // Functional keys
+            event.keyCode == KeyEvent.KEYCODE_ENTER -> "\r"
+            event.keyCode == KeyEvent.KEYCODE_DEL -> "\u007F"
+            event.keyCode == KeyEvent.KEYCODE_FORWARD_DEL -> "\u001B[3~"
+            event.keyCode == KeyEvent.KEYCODE_TAB -> "\t"
+            event.keyCode == KeyEvent.KEYCODE_ESCAPE -> "\u001B"
+            event.keyCode == KeyEvent.KEYCODE_SPACE -> " "
+
+            // Arrow keys
+            event.keyCode == KeyEvent.KEYCODE_DPAD_UP -> "\u001B[A"
+            event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN -> "\u001B[B"
+            event.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT -> "\u001B[C"
+            event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT -> "\u001B[D"
+            event.keyCode == KeyEvent.KEYCODE_MOVE_HOME -> "\u001B[H"
+            event.keyCode == KeyEvent.KEYCODE_MOVE_END -> "\u001B[F"
+
+            // Page up / down
+            event.keyCode == KeyEvent.KEYCODE_PAGE_UP -> "\u001B[5~"
+            event.keyCode == KeyEvent.KEYCODE_PAGE_DOWN -> "\u001B[6~"
+
+            // Printable character
+            event.unicodeChar != 0 -> event.unicodeChar.toChar().toString()
+            else -> null
+        }
+
+        return data?.let {
+            sendRaw(it)
+            true
+        } ?: false
     }
 
     fun sendCommand(command: String) {

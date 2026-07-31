@@ -15,13 +15,15 @@
 
 它不是 VNC/RDP 协议客户端——连接 Windows 桌面时，它会帮你唤起系统里已安装的 Microsoft Remote Desktop 等专业客户端并自动带入连接参数；而 SSH 终端和 SFTP 文件管理则是 App 内置完整实现的。
 
+> **近期更新**：UI 已升级为深色科技感主题；SSH 终端改为直接在终端内输入命令；RDP 连接改为在 App 内打开标签页，并预留了 FreeRDP 原生引擎接入点。
+
 ## 功能一览
 
 - **会话管理面板**：服务器按自定义分组组织成树，支持按名称过滤；面板可一键折叠成窄条，横屏办公空间最大化
-- **多会话标签页**：详情 / SSH 终端 / SFTP / 编辑各自独立标签，随开随关，切标签保持连接
-- **SSH 终端**：内置 JSch 客户端，支持密码与私钥认证，快捷栏提供 `Ctrl+C`、`Ctrl+D`、`Ctrl+Z`、`Tab`、`Clear`
+- **多会话标签页**：详情 / SSH 终端 / SFTP / RDP / 编辑各自独立标签，随开随关，切标签保持连接
+- **SSH 终端**：内置 JSch 客户端，支持密码与私钥认证；终端内直接输入，支持方向键、Ctrl 组合键、Tab、Esc 等常用控制键
 - **SFTP 文件管理**：浏览远程目录、查看文件信息、下载到本地
-- **RDP 快捷唤起**：一键拉起 Microsoft Remote Desktop / aFreeRDP 连接 Windows，分辨率、色深、NLA 可配
+- **RDP 快捷唤起**：一键拉起 Microsoft Remote Desktop / aFreeRDP 连接 Windows，分辨率、色深、NLA 可配（完整内置渲染需后续集成 FreeRDP 原生库）
 - **加密存储**：密码、私钥使用 EncryptedSharedPreferences + Android Keystore 加密保存，数据库与密钥文件不参与云备份
 - **大屏响应式**：手机单栏、平板横屏双区（面板 + 标签工作区），适配分屏与小窗模式
 
@@ -49,7 +51,7 @@
 
 ### 2. 连接 Linux（SSH 终端）
 
-在会话树中点选服务器 → 点工具栏的 **终端图标**（或详情页里的「SSH 终端」）→ 新标签页中即出现终端。底部输入命令回车发送，常用控制键在快捷栏里。
+在会话树中点选服务器 → 点工具栏的 **终端图标**（或详情页里的「SSH 终端」）→ 新标签页中即出现终端。直接在终端底部的 `$` 提示符后输入命令回车即可，支持 Ctrl+C / Ctrl+D / Ctrl+Z / Tab 等快捷按钮。
 
 ### 3. 浏览 / 下载文件（SFTP）
 
@@ -57,7 +59,9 @@
 
 ### 4. 连接 Windows（RDP）
 
-先在平板上安装 [Microsoft Remote Desktop](https://play.google.com/store/apps/details?id=com.microsoft.rdc.androidx) 或 aFreeRDP，然后选中 RDP 服务器 → 点工具栏的 **显示器图标**，系统会自动唤起客户端并带入地址、账号等参数。
+选中 RDP 服务器 → 点工具栏的 **显示器图标**，App 会在内部标签页打开 RDP 会话页，点击「连接远程桌面」后会尝试唤起已安装的 Microsoft Remote Desktop 或 aFreeRDP 并带入地址、账号等参数。
+
+> 当前版本 RDP 画面仍由外部客户端渲染。要在 App 内直接渲染远程桌面，需要后续集成 FreeRDP 原生库（NDK + CMake）。代码中已预留 `FreeRdpBridge` 接入点。
 
 ### 5. 高效使用小技巧
 
@@ -74,7 +78,7 @@
 
 ## 已知限制
 
-- RDP 依赖外部客户端，App 本身不渲染远程桌面画面
+- RDP 目前仍依赖外部客户端渲染画面；App 内仅提供连接入口和参数传递
 - SFTP 暂不支持上传，仅下载
 - 终端 ANSI 颜色为高亮简化实现，极复杂的转义序列可能显示不完整
 - 关闭 SSH 标签不会立即断开底层会话（重开同一服务器可恢复现场），退出 App 才会真正断开
@@ -97,7 +101,7 @@ Kotlin · Jetpack Compose (Material3) · MVVM + Repository · Room (KSP) · Koin
 
 ## 贡献
 
-欢迎 Issue 和 PR：BUG 反馈、功能建议、终端渲染改进、SFTP 上传实现等，都是对项目很大的帮助。
+欢迎 Issue 和 PR：BUG 反馈、功能建议、终端渲染改进、SFTP 上传实现、FreeRDP 内置 RDP 渲染集成等，都是对项目很大的帮助。
 
 ## 许可证
 

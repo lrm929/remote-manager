@@ -1,5 +1,7 @@
 package com.remotemanager.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
@@ -32,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,9 +44,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.remotemanager.ui.theme.NeonBlue
+import com.remotemanager.ui.theme.NeonCyan
+import com.remotemanager.ui.theme.NeonPurple
+import com.remotemanager.ui.theme.TechBorder
+import com.remotemanager.ui.theme.TechPanel
+import com.remotemanager.ui.theme.TechSurface
+import com.remotemanager.ui.theme.TerminalError
+import com.remotemanager.ui.theme.TextSecondary
 import com.remotemanager.ui.viewmodel.SftpFile
 import com.remotemanager.ui.viewmodel.SftpUiState
 import com.remotemanager.ui.viewmodel.SftpViewModel
@@ -68,71 +83,97 @@ fun SftpBrowserScreen(
             TopAppBar(
                 title = {
                     Text(
-                        when (val state = uiState) {
+                        text = when (val state = uiState) {
                             is SftpUiState.Success -> state.currentPath
                             else -> "SFTP 文件管理"
                         },
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = NeonBlue
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::connect) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "刷新",
+                            tint = NeonCyan
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TechPanel,
+                    titleContentColor = NeonBlue
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(12.dp)
         ) {
-            when (val state = uiState) {
-                is SftpUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is SftpUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(TechSurface)
+                    .border(1.dp, TechBorder, RoundedCornerShape(16.dp))
+            ) {
+                when (val state = uiState) {
+                    is SftpUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = NeonCyan
                         )
-                        TextButton(onClick = viewModel::connect) {
-                            Text("重试")
+                    }
+                    is SftpUiState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = TerminalError
+                            )
+                            TextButton(onClick = viewModel::connect) {
+                                Text("重试", color = NeonCyan)
+                            }
                         }
                     }
-                }
-                is SftpUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(state.files, key = { it.path }) { file ->
-                            FileItem(
-                                file = file,
-                                onClick = {
-                                    if (file.isDirectory) {
-                                        viewModel.navigateTo(file.name)
-                                    } else {
-                                        selectedFile = file
+                    is SftpUiState.Success -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(state.files, key = { it.path }) { file ->
+                                FileItem(
+                                    file = file,
+                                    onClick = {
+                                        if (file.isDirectory) {
+                                            viewModel.navigateTo(file.name)
+                                        } else {
+                                            selectedFile = file
+                                        }
+                                    },
+                                    onDownload = {
+                                        viewModel.downloadFile(file, context)
                                     }
-                                },
-                                onDownload = {
-                                    viewModel.downloadFile(file, context)
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -157,7 +198,7 @@ fun SftpBrowserScreen(
                         selectedFile = null
                     }
                 ) {
-                    Text("下载")
+                    Text("下载", color = NeonCyan)
                 }
             },
             dismissButton = {
@@ -175,25 +216,46 @@ private fun FileItem(
     onClick: () -> Unit,
     onDownload: () -> Unit
 ) {
+    val tint = if (file.isDirectory) NeonPurple else NeonCyan
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, TechBorder, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = TechSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            tint.copy(alpha = 0.06f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (file.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = if (file.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tint.copy(alpha = 0.10f))
+                    .border(1.dp, tint.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (file.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = tint
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = file.name,
@@ -205,13 +267,17 @@ private fun FileItem(
                     Text(
                         text = formatFileSize(file.size),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = TextSecondary
                     )
                 }
             }
             if (!file.isDirectory) {
                 IconButton(onClick = onDownload) {
-                    Icon(Icons.Default.Download, contentDescription = "下载")
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "下载",
+                        tint = NeonCyan
+                    )
                 }
             }
         }
