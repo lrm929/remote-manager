@@ -43,7 +43,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -275,37 +274,30 @@ private fun ServerCard(
         ConnectionType.RDP -> NeonPink
         ConnectionType.SSH -> NeonGreen
     }
-    val borderColor = if (isSelected) typeTint.copy(alpha = 0.60f) else TechBorder
+    val borderColor = if (isSelected) typeTint.copy(alpha = 0.55f) else TechBorder
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = TechSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            typeTint.copy(alpha = 0.08f),
-                            Color.Transparent
-                        )
-                    )
-                )
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 类型图标徽章
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(typeTint.copy(alpha = 0.12f))
-                    .border(1.dp, typeTint.copy(alpha = 0.30f), RoundedCornerShape(12.dp)),
+                    .border(1.dp, typeTint.copy(alpha = 0.28f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -332,7 +324,7 @@ private fun ServerCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!server.group.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = server.group,
                         style = MaterialTheme.typography.labelSmall,
@@ -344,6 +336,17 @@ private fun ServerCard(
                     )
                 }
             }
+            Spacer(modifier = Modifier.width(8.dp))
+            // 类型标签
+            Text(
+                text = if (server.type == ConnectionType.RDP) "RDP" else "SSH",
+                style = MaterialTheme.typography.labelSmall,
+                color = typeTint,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(typeTint.copy(alpha = 0.10f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            )
         }
     }
 }

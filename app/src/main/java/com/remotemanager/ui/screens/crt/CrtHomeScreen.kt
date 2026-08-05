@@ -1,8 +1,8 @@
 package com.remotemanager.ui.screens.crt
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -65,7 +66,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.remotemanager.data.model.ConnectionType
@@ -80,10 +80,13 @@ import com.remotemanager.ui.theme.NeonCyan
 import com.remotemanager.ui.theme.NeonGreen
 import com.remotemanager.ui.theme.NeonPink
 import com.remotemanager.ui.theme.NeonPurple
+import com.remotemanager.ui.theme.TechBlack
 import com.remotemanager.ui.theme.TechBorder
 import com.remotemanager.ui.theme.TechPanel
 import com.remotemanager.ui.theme.TechSurface
+import com.remotemanager.ui.theme.TechSurfaceElevated
 import com.remotemanager.ui.theme.TextDisabled
+import com.remotemanager.ui.theme.TextPrimary
 import com.remotemanager.ui.theme.TextSecondary
 import com.remotemanager.ui.theme.TerminalError
 import com.remotemanager.ui.viewmodel.ServerListUiState
@@ -100,24 +103,31 @@ private data class SessionTab(
 )
 
 private const val DEFAULT_GROUP = "默认分组"
+private val SIDEBAR_EXPANDED = 300.dp
+private val SIDEBAR_COLLAPSED = 68.dp
 
 /**
- * 大屏（平板横屏）桌面风格主页：左侧会话管理面板 + 顶部工具栏 + 右侧标签页会话区。
- * 采用深色科技感主题。
+ * 大屏（平板横屏）桌面风格主页：左侧可折叠会话面板 + 顶部工具栏 + 右侧标签页会话区。
+ * 采用优雅的「午夜蓝」深色主题，侧栏宽度使用平滑动画过渡。
  */
 @Composable
 fun CrtHomeScreen(
     viewModel: ServerListViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     val tabs = remember { mutableStateListOf<SessionTab>() }
     var activeKey by rememberSaveable { mutableStateOf("") }
     var selectedServer by remember { mutableStateOf<Server?>(null) }
-    var panelCollapsed by rememberSaveable { mutableStateOf(false) }
+    var sidebarExpanded by rememberSaveable { mutableStateOf(true) }
     var collapsedGroups by remember { mutableStateOf(setOf<String>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val sidebarWidth by animateDpAsState(
+        targetValue = if (sidebarExpanded) SIDEBAR_EXPANDED else SIDEBAR_COLLAPSED,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "sidebarWidth"
+    )
 
     fun findServer(id: Long): Server? =
         uiState.servers.find { it.id == id } ?: selectedServer?.takeIf { it.id == id }
@@ -196,44 +206,64 @@ fun CrtHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(TechBlack)
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = !panelCollapsed,
-                enter = fadeIn(),
-                exit = fadeOut()
+            // ── 左侧栏：宽度平滑动画，展开为完整面板、收起为图标栏 ──
+            Column(
+                modifier = Modifier
+                    .width(sidebarWidth)
+                    .fillMaxHeight()
+                    .background(TechPanel)
+                    .drawBehind {
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    NeonCyan.copy(alpha = 0.05f),
+                                    Color.Transparent,
+                                    NeonPurple.copy(alpha = 0.03f)
+                                )
+                            )
+                        )
+                    }
             ) {
-                SessionPanel(
-                    uiState = uiState,
-                    selectedServerId = selectedServer?.id ?: 0L,
-                    collapsedGroups = collapsedGroups,
-                    onToggleGroup = { group ->
-                        collapsedGroups = if (collapsedGroups.contains(group)) {
-                            collapsedGroups - group
-                        } else {
-                            collapsedGroups + group
+                if (sidebarWidth > 180.dp) {
+                    SessionPanel(
+                        uiState = uiState,
+                        selectedServerId = selectedServer?.id ?: 0L,
+                        collapsedGroups = collapsedGroups,
+                        onToggleGroup = { group ->
+                            collapsedGroups = if (collapsedGroups.contains(group)) {
+                                collapsedGroups - group
+                            } else {
+                                collapsedGroups + group
+                            }
+                        },
+                        onServerClick = { server ->
+                            selectedServer = server
+                            openTab(TabKind.DETAIL, server.id)
+                        },
+                        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+                        onAddServer = { openTab(TabKind.EDIT, 0L) },
+                        onCollapse = { sidebarExpanded = false }
+                    )
+                } else {
+                    CollapsedRail(
+                        servers = uiState.servers,
+                        selectedServerId = selectedServer?.id ?: 0L,
+                        onExpand = { sidebarExpanded = true },
+                        onAddServer = { openTab(TabKind.EDIT, 0L) },
+                        onServerClick = { server ->
+                            selectedServer = server
+                            openTab(TabKind.DETAIL, server.id)
                         }
-                    },
-                    onServerClick = { server ->
-                        selectedServer = server
-                        openTab(TabKind.DETAIL, server.id)
-                    },
-                    onSearchQueryChanged = viewModel::onSearchQueryChanged,
-                    onAddServer = { openTab(TabKind.EDIT, 0L) },
-                    onCollapse = { panelCollapsed = true }
-                )
-            }
-            AnimatedVisibility(
-                visible = panelCollapsed,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                CollapsedPanelStrip(onExpand = { panelCollapsed = false })
+                    )
+                }
             }
 
-            VerticalDivider(color = TechBorder)
+            VerticalDivider(color = TechBorder, thickness = 1.dp)
 
+            // ── 右侧主区 ──
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 CrtToolbar(
                     selectedServer = selectedServer,
@@ -260,7 +290,7 @@ fun CrtHomeScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .padding(8.dp)
+                        .padding(14.dp)
                 ) {
                     val activeTab = tabs.firstOrNull { it.key == activeKey }
                     if (activeTab == null) {
@@ -270,35 +300,36 @@ fun CrtHomeScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(TechPanel)
                                     .border(
                                         width = 1.dp,
                                         color = TechBorder,
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = RoundedCornerShape(16.dp)
                                     )
                             ) {
                                 when (activeTab.kind) {
-                            TabKind.DETAIL -> ServerDetailScreen(
-                                serverId = activeTab.serverId,
-                                onNavigateBack = { closeTab(activeTab.key) },
-                                onEditClick = { openTab(TabKind.EDIT, activeTab.serverId) },
-                                onSshClick = { openTab(TabKind.SSH, activeTab.serverId) },
-                                onSftpClick = { openTab(TabKind.SFTP, activeTab.serverId) },
-                                onRdpLaunch = { openTab(TabKind.RDP, activeTab.serverId) }
-                            )
+                                    TabKind.DETAIL -> ServerDetailScreen(
+                                        serverId = activeTab.serverId,
+                                        onNavigateBack = { closeTab(activeTab.key) },
+                                        onEditClick = { openTab(TabKind.EDIT, activeTab.serverId) },
+                                        onSshClick = { openTab(TabKind.SSH, activeTab.serverId) },
+                                        onSftpClick = { openTab(TabKind.SFTP, activeTab.serverId) },
+                                        onRdpLaunch = { openTab(TabKind.RDP, activeTab.serverId) }
+                                    )
                                     TabKind.SSH -> SshTerminalScreen(
                                         serverId = activeTab.serverId,
                                         onNavigateBack = { closeTab(activeTab.key) }
                                     )
-                            TabKind.SFTP -> SftpBrowserScreen(
-                                serverId = activeTab.serverId,
-                                onNavigateBack = { closeTab(activeTab.key) }
-                            )
-                            TabKind.RDP -> RdpSessionScreen(
-                                serverId = activeTab.serverId,
-                                onNavigateBack = { closeTab(activeTab.key) }
-                            )
-                            TabKind.EDIT -> ServerEditScreen(
+                                    TabKind.SFTP -> SftpBrowserScreen(
+                                        serverId = activeTab.serverId,
+                                        onNavigateBack = { closeTab(activeTab.key) }
+                                    )
+                                    TabKind.RDP -> RdpSessionScreen(
+                                        serverId = activeTab.serverId,
+                                        onNavigateBack = { closeTab(activeTab.key) }
+                                    )
+                                    TabKind.EDIT -> ServerEditScreen(
                                         serverId = activeTab.serverId,
                                         onNavigateBack = { closeTab(activeTab.key) }
                                     )
@@ -318,7 +349,7 @@ fun CrtHomeScreen(
             text = { Text("确定要删除 \"${selectedServer?.name ?: ""}\" 吗？该服务器的所有会话标签也会被关闭。") },
             confirmButton = {
                 TextButton(onClick = { deleteSelectedServer() }) {
-                    Text("删除")
+                    Text("删除", color = TerminalError)
                 }
             },
             dismissButton = {
@@ -326,6 +357,28 @@ fun CrtHomeScreen(
                     Text("取消")
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun BrandMark(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(NeonCyan, NeonBlue)
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Terminal,
+            contentDescription = null,
+            tint = TechBlack,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -341,41 +394,27 @@ private fun SessionPanel(
     onAddServer: () -> Unit,
     onCollapse: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .width(320.dp)
-            .fillMaxHeight()
-            .background(TechPanel)
-            .drawBehind {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            NeonCyan.copy(alpha = 0.04f),
-                            Color.Transparent,
-                            Color.Transparent,
-                            NeonPurple.copy(alpha = 0.03f)
-                        )
-                    )
-                )
-            }
-    ) {
-        // 面板标题栏
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 头部：品牌标识 + 操作按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
-                .padding(start = 16.dp, end = 4.dp),
+                .height(64.dp)
+                .padding(start = 16.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 4.dp)
-            ) {
+            BrandMark()
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "REMOTE MANAGER",
                     style = MaterialTheme.typography.titleSmall,
-                    color = NeonCyan
+                    color = TextPrimary
+                )
+                Text(
+                    text = "SSH · RDP · SFTP",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
                 )
             }
             NeonIconButton(onClick = onAddServer) {
@@ -400,7 +439,7 @@ private fun SessionPanel(
             onValueChange = onSearchQueryChanged,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             placeholder = { Text("过滤会话名…", color = TextSecondary) },
             leadingIcon = {
                 Icon(
@@ -412,7 +451,7 @@ private fun SessionPanel(
             },
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyMedium,
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = TechSurface,
                 unfocusedContainerColor = TechSurface,
@@ -439,7 +478,10 @@ private fun SessionPanel(
                 )
             }
         } else {
-            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 6.dp)
+            ) {
                 grouped.forEach { (groupName, serversInGroup) ->
                     item(key = "group:$groupName") {
                         GroupHeaderRow(
@@ -474,9 +516,9 @@ private fun GroupHeaderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(38.dp)
             .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -486,30 +528,30 @@ private fun GroupHeaderRow(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight
             },
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = NeonCyan
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Icon(
-            imageVector = Icons.Default.Folder,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = NeonPurple
+            modifier = Modifier.size(16.dp),
+            tint = TextSecondary
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = groupName,
             style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary
-        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(TechSurfaceElevated)
+                .padding(horizontal = 7.dp, vertical = 1.dp)
+        ) {
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+        }
     }
 }
 
@@ -524,38 +566,50 @@ private fun ServerTreeRow(
         ConnectionType.SSH -> NeonGreen
     }
     val bgColor = if (selected) NeonCyan.copy(alpha = 0.10f) else Color.Transparent
-    val borderColor = if (selected) NeonCyan.copy(alpha = 0.50f) else Color.Transparent
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .border(
-                width = if (selected) 1.dp else 0.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
             .clickable(onClick = onClick)
-            .padding(start = 30.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 12.dp, end = 12.dp, top = 9.dp, bottom = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = if (server.type == ConnectionType.RDP) {
-                Icons.Default.Computer
-            } else {
-                Icons.Default.Terminal
-            },
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = tint
+        // 选中态左侧高亮指示条
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(28.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(if (selected) NeonCyan else Color.Transparent)
         )
+        Spacer(modifier = Modifier.width(10.dp))
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(tint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (server.type == ConnectionType.RDP) {
+                    Icons.Default.Computer
+                } else {
+                    Icons.Default.Terminal
+                },
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = tint
+            )
+        }
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = server.name,
                 style = MaterialTheme.typography.bodyMedium,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -570,30 +624,75 @@ private fun ServerTreeRow(
     }
 }
 
+/** 收起后的窄图标栏：展开按钮 + 新建 + 服务器快捷图标 */
 @Composable
-private fun CollapsedPanelStrip(onExpand: () -> Unit) {
+private fun CollapsedRail(
+    servers: List<Server>,
+    selectedServerId: Long,
+    onExpand: () -> Unit,
+    onAddServer: () -> Unit,
+    onServerClick: (Server) -> Unit
+) {
     Column(
         modifier = Modifier
-            .width(44.dp)
-            .fillMaxHeight()
-            .background(TechPanel)
-            .clickable(onClick = onExpand)
-            .padding(vertical = 12.dp),
+            .fillMaxSize()
+            .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "展开面板",
-            modifier = Modifier.size(22.dp),
-            tint = NeonCyan
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        "会话".forEach { c ->
-            Text(
-                text = c.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = NeonCyan
+        NeonIconButton(onClick = onExpand) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "展开面板",
+                modifier = Modifier.size(22.dp)
             )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        NeonIconButton(onClick = onAddServer) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "新建服务器",
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            color = TechBorder,
+            modifier = Modifier.padding(horizontal = 14.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(servers, key = { "rail:${it.id}" }) { server ->
+                val tint = when (server.type) {
+                    ConnectionType.RDP -> NeonPink
+                    ConnectionType.SSH -> NeonGreen
+                }
+                val selected = server.id == selectedServerId
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (selected) tint.copy(alpha = 0.16f) else Color.Transparent
+                        )
+                        .clickable { onServerClick(server) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (server.type == ConnectionType.RDP) {
+                            Icons.Default.Computer
+                        } else {
+                            Icons.Default.Terminal
+                        },
+                        contentDescription = server.name,
+                        modifier = Modifier.size(18.dp),
+                        tint = tint
+                    )
+                }
+            }
         }
     }
 }
@@ -611,14 +710,20 @@ private fun CrtToolbar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .background(TechSurface)
-            .padding(horizontal = 8.dp),
+            .height(60.dp)
+            .background(TechPanel)
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         NeonIconButton(onClick = onNewServer) {
             Icon(Icons.Default.Add, contentDescription = "新建服务器")
         }
+        VerticalDivider(
+            color = TechBorder,
+            modifier = Modifier
+                .height(26.dp)
+                .padding(horizontal = 6.dp)
+        )
         NeonIconButton(
             onClick = onConnectSsh,
             enabled = selectedServer?.type == ConnectionType.SSH,
@@ -640,6 +745,12 @@ private fun CrtToolbar(
         ) {
             Icon(Icons.Default.Folder, contentDescription = "SFTP 文件")
         }
+        VerticalDivider(
+            color = TechBorder,
+            modifier = Modifier
+                .height(26.dp)
+                .padding(horizontal = 6.dp)
+        )
         NeonIconButton(onClick = onEdit, enabled = selectedServer != null) {
             Icon(Icons.Default.Edit, contentDescription = "编辑服务器")
         }
@@ -655,7 +766,12 @@ private fun CrtToolbar(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(end = 12.dp)
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(TechSurface)
+                    .border(1.dp, TechBorder, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -665,7 +781,7 @@ private fun CrtToolbar(
                                 ConnectionType.SSH -> NeonGreen
                                 ConnectionType.RDP -> NeonPink
                             },
-                            shape = RoundedCornerShape(50)
+                            shape = CircleShape
                         )
                 )
                 Text(
@@ -691,9 +807,9 @@ private fun SessionTabStrip(
     ScrollableTabRow(
         selectedTabIndex = activeIndex,
         modifier = Modifier.fillMaxWidth(),
-        containerColor = TechSurface,
+        containerColor = TechBlack,
         contentColor = NeonCyan,
-        edgePadding = 8.dp,
+        edgePadding = 12.dp,
         divider = {}
     ) {
         tabs.forEach { tab ->
@@ -707,17 +823,17 @@ private fun SessionTabStrip(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (selected) activeTint.copy(alpha = 0.12f) else Color.Transparent
+                            if (selected) TechSurfaceElevated else Color.Transparent
                         )
                         .border(
-                            width = if (selected) 1.dp else 0.dp,
-                            color = if (selected) activeTint.copy(alpha = 0.50f) else Color.Transparent,
-                            shape = RoundedCornerShape(8.dp)
+                            width = 1.dp,
+                            color = if (selected) TechBorder else Color.Transparent,
+                            shape = RoundedCornerShape(10.dp)
                         )
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -726,22 +842,23 @@ private fun SessionTabStrip(
                         modifier = Modifier.size(14.dp),
                         tint = if (selected) activeTint else TextSecondary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = tab.title,
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (selected) activeTint else TextSecondary
+                        color = if (selected) TextPrimary else TextSecondary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(7.dp))
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "关闭标签",
                         modifier = Modifier
                             .size(14.dp)
+                            .clip(CircleShape)
                             .clickable { onClose(tab.key) },
-                        tint = if (selected) activeTint else TextSecondary
+                        tint = if (selected) TextSecondary else TextDisabled
                     )
                 }
             }
@@ -772,23 +889,32 @@ private fun EmptySessionPlaceholder() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Terminal,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = NeonCyan.copy(alpha = 0.3f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(TechPanel)
+                    .border(1.dp, TechBorder, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Terminal,
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = NeonCyan.copy(alpha = 0.5f)
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "从左侧会话管理中选择一个服务器",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
+                text = "从左侧选择一个服务器开始",
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "SSH / RDP / SFTP 统一管理",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
             )
         }
     }
