@@ -241,7 +241,10 @@ fun CrtHomeScreen(
                         },
                         onServerClick = { server ->
                             selectedServer = server
-                            openTab(TabKind.DETAIL, server.id)
+                            when (server.type) {
+                                ConnectionType.SSH -> openTab(TabKind.SSH, server.id)
+                                ConnectionType.RDP -> openTab(TabKind.RDP, server.id)
+                            }
                         },
                         onSearchQueryChanged = viewModel::onSearchQueryChanged,
                         onAddServer = { openTab(TabKind.EDIT, 0L) },
@@ -255,7 +258,10 @@ fun CrtHomeScreen(
                         onAddServer = { openTab(TabKind.EDIT, 0L) },
                         onServerClick = { server ->
                             selectedServer = server
-                            openTab(TabKind.DETAIL, server.id)
+                            when (server.type) {
+                                ConnectionType.SSH -> openTab(TabKind.SSH, server.id)
+                                ConnectionType.RDP -> openTab(TabKind.RDP, server.id)
+                            }
                         }
                     )
                 }

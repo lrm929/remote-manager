@@ -21,9 +21,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -66,7 +68,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun ServerListScreen(
     selectedServerId: Long = 0L,
-    onServerClick: (Long) -> Unit,
+    onServerClick: (Server) -> Unit,
+    onServerInfo: (Long) -> Unit,
     onAddServer: () -> Unit,
     viewModel: ServerListViewModel = koinViewModel()
 ) {
@@ -131,7 +134,7 @@ fun ServerListScreen(
                         ServerCard(
                             server = server,
                             isSelected = server.id == selectedServerId,
-                            onClick = { onServerClick(server.id) }
+                            onClick = { onServerClick(server) }
                         )
                     }
                 }
@@ -268,7 +271,8 @@ private fun TechFilterChip(
 private fun ServerCard(
     server: Server,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onInfoClick: () -> Unit
 ) {
     val typeTint = when (server.type) {
         ConnectionType.RDP -> NeonPink
@@ -336,7 +340,19 @@ private fun ServerCard(
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+                onClick = onInfoClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "详情",
+                    modifier = Modifier.size(20.dp),
+                    tint = TextSecondary
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
             // 类型标签
             Text(
                 text = if (server.type == ConnectionType.RDP) "RDP" else "SSH",

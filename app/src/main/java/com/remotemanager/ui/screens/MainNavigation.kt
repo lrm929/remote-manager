@@ -10,6 +10,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.remotemanager.data.model.ConnectionType
+import com.remotemanager.data.model.Server
 import com.remotemanager.ui.screens.crt.CrtHomeScreen
 import com.remotemanager.ui.screens.rdp.RdpSessionScreen
 
@@ -58,7 +60,13 @@ private fun SinglePaneLayout(navController: NavHostController) {
         composable(Screen.ServerList.route) {
             ServerListScreen(
                 selectedServerId = 0L,
-                onServerClick = { serverId ->
+                onServerClick = { server ->
+                    when (server.type) {
+                        ConnectionType.SSH -> navController.navigate(Screen.SshTerminal.createRoute(server.id))
+                        ConnectionType.RDP -> navController.navigate(Screen.RdpSession.createRoute(server.id))
+                    }
+                },
+                onServerInfo = { serverId ->
                     navController.navigate(Screen.ServerDetail.createRoute(serverId))
                 },
                 onAddServer = {
