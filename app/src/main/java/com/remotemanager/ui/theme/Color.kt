@@ -8,11 +8,11 @@ import androidx.compose.ui.graphics.Color
 // ============================================================================
 
 // ---- 背景 / 面板 / 表面（由深到浅的层级）----
-val TechBlack = Color(0xFF0A0E16)           // 应用底色：深邃午夜蓝黑
-val TechPanel = Color(0xFF0F141F)           // 侧栏 / 大面板
-val TechSurface = Color(0xFF151B29)         // 卡片 / 输入框
-val TechSurfaceElevated = Color(0xFF1B2333) // 浮起元素（弹层、悬浮按钮）
-val TechBorder = Color(0xFF232B3D)          // 细分隔线 / 描边（更柔和）
+val TechBlack = Color(0xFF0D1117)           // 应用底色
+val TechPanel = Color(0xFF141A24)           // 侧栏 / 顶栏 / 大面板
+val TechSurface = Color(0xFF1E2636)         // 卡片 / 输入框（提亮）
+val TechSurfaceElevated = Color(0xFF283346) // 浮起元素（大幅提亮）
+val TechBorder = Color(0xFF354062)          // 细分隔线（更清晰可见）
 
 // ---- 主色 / 功能色（收敛、精致，不再刺眼）----
 val NeonCyan = Color(0xFF45D5FF)            // 主色：清亮的青
@@ -22,10 +22,10 @@ val NeonPink = Color(0xFFFF5C8A)            // 品红：RDP
 val NeonGreen = Color(0xFF3DDC97)           // 绿：SSH / 成功
 val NeonYellow = Color(0xFFFFC94D)          // 黄：警告
 
-val TextPrimary = Color(0xFFEDF1F8)         // 主文本：近白
-val TextSecondary = Color(0xFF9AA4BC)       // 次文本
-val TextDisabled = Color(0xFF5A6378)        // 禁用
-val TextDisabledBackground = Color(0xFF1B2333)
+val TextPrimary = Color(0xFFF0F4FC)         // 主文本：近白
+val TextSecondary = Color(0xFFA8B4CE)       // 次文本（提亮）
+val TextDisabled = Color(0xFF5E6A82)        // 禁用
+val TextDisabledBackground = Color(0xFF283346)
 
 // 终端
 val TerminalBackground = Color(0xFF060910)
