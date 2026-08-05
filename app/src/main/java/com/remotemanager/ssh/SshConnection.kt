@@ -31,7 +31,8 @@ class SshConnection(
                     put("StrictHostKeyChecking", "no")
                     put("PreferredAuthentications", "publickey,password")
                 })
-                timeout = 15000
+                // socket 建链最长等待 20s（原 15s，弱网易超时）
+                timeout = 20000
 
                 if (!server.privateKey.isNullOrBlank()) {
                     jsch.addIdentity("server_${server.id}", server.privateKey.toByteArray(), null, null)
@@ -47,14 +48,32 @@ class SshConnection(
             channel.setPtyType("xterm-256color")
             outputStream = channel.outputStream
             inputStream = channel.inputStream
-            channel.connect()
+            // 通道协商超时 10s（0 表示无限等待，默认即 0 易卡死）
+            channel.connect(10000)
             this@SshConnection.channel = channel
             isConnected = true
 
             Result.success(Unit)
         } catch (e: Exception) {
             disconnect()
-            Result.failure(e)
+            Result.failure(Throwable(friendlyError(e)))
+        }
+    }
+
+    private fun friendlyError(e: Exception): String {
+        val msg = e.message ?: ""
+        return when {
+            msg.contains("timeout", ignoreCase = true) ||
+                msg.contains("socket is not established", ignoreCase = true) ->
+                "连接超时：无法在限定时间内建立到 ${server.host}:${server.port} 的连接，请检查主机地址、端口及网络是否可达。"
+            msg.contains("Auth fail", ignoreCase = true) ->
+                "认证失败：用户名或密码 / 私钥不正确。"
+            msg.contains("UnknownHost", ignoreCase = true) ||
+                msg.contains("getaddrinfo", ignoreCase = true) ->
+                "无法解析主机：${server.host}，请检查主机名拼写。"
+            msg.contains("refused", ignoreCase = true) ->
+                "连接被拒绝：${server.host}:${server.port} 未监听或已被防火墙拦截。"
+            else -> "连接失败：$msg"
         }
     }
 
