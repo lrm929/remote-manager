@@ -340,22 +340,22 @@ private fun tryLaunchExternalRdp(
 
 private fun generateRdpFile(context: Context, server: Server): File {
     val rdpContent = buildString {
-        println("full address:s:${server.host}:${server.port}")
-        println("username:s:${server.username}")
+        appendLine("full address:s:${server.host}:${server.port}")
+        appendLine("username:s:${server.username}")
         if (!server.password.isNullOrBlank()) {
-            println("password:s:${server.password}")
+            appendLine("password:s:${server.password}")
         }
-        println("desktopwidth:i:${server.rdpWidth ?: 1280}")
-        println("desktopheight:i:${server.rdpHeight ?: 720}")
-        println("session bpp:i:${server.rdpColorDepth}")
+        appendLine("desktopwidth:i:${server.rdpWidth ?: 1280}")
+        appendLine("desktopheight:i:${server.rdpHeight ?: 720}")
+        appendLine("session bpp:i:${server.rdpColorDepth}")
         if (server.useNla) {
-            println("authentication level:i:2")
+            appendLine("authentication level:i:2")
         }
-        println("compression:i:1")
-        println("displayconnectionbar:i:1")
+        appendLine("compression:i:1")
+        appendLine("displayconnectionbar:i:1")
     }
 
-    val rdpDir = File(context.filesDir, "rdp").also { it.mkdirs() }
+    val rdpDir = File(context.cacheDir, "rdp").also { it.mkdirs() }
     val rdpFile = File(rdpDir, "${server.name ?: "connection"}.rdp")
     rdpFile.writeText(rdpContent)
     return rdpFile
