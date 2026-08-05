@@ -3,6 +3,7 @@ package com.remotemanager.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ import com.remotemanager.data.repository.ServerRepository
 import com.remotemanager.ui.theme.NeonCyan
 import com.remotemanager.ui.theme.NeonGreen
 import com.remotemanager.ui.theme.NeonPink
+import com.remotemanager.ui.theme.TechBlack
 import com.remotemanager.ui.theme.TechBorder
 import com.remotemanager.ui.theme.TechPanel
 import com.remotemanager.ui.theme.TechSurface
@@ -171,6 +173,18 @@ fun ServerEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 表单卡片
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(TechSurface)
+                    .border(1.dp, TechBorder, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
             TechOutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -265,6 +279,9 @@ fun ServerEditScreen(
                 )
             }
 
+            }
+            } // end Box card
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
@@ -277,7 +294,7 @@ fun ServerEditScreen(
                     contentColor = NeonCyan
                 ),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(
+                border = BorderStroke(
                     1.dp,
                     NeonCyan.copy(alpha = 0.50f)
                 )
