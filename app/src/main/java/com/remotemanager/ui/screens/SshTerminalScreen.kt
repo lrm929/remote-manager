@@ -1,5 +1,7 @@
 package com.remotemanager.ui.screens
 
+import android.view.KeyEvent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.SelectionContainer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -70,7 +73,7 @@ import com.remotemanager.ui.viewmodel.SshViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SshTerminalScreen(
     serverId: Long,
@@ -137,15 +140,15 @@ fun SshTerminalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(8.dp)
+                .padding(4.dp)
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(TerminalBackground)
-                    .border(1.dp, TechBorder, RoundedCornerShape(12.dp))
+                    .border(1.dp, TechBorder, RoundedCornerShape(8.dp))
             ) {
                 when (uiState) {
                     is SshUiState.Loading -> {
@@ -185,7 +188,7 @@ fun SshTerminalScreen(
             }
 
             if (uiState is SshUiState.Connected) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 ShortcutBar(
                     onSendRaw = viewModel::sendRaw,
                     modifier = Modifier.fillMaxWidth()
@@ -195,15 +198,15 @@ fun SshTerminalScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TerminalContent(
     lines: List<String>,
-    listState: androidx.compose.foundation.lazy.LazyListState,
+    listState: LazyListState,
     enabled: Boolean,
-    onKeyEvent: (android.view.KeyEvent) -> Boolean,
+    onKeyEvent: (KeyEvent) -> Boolean,
     onSendRaw: (String) -> Unit
 ) {
-    var input by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(enabled) {
@@ -212,90 +215,44 @@ private fun TerminalContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(12.dp)
-        ) {
-            items(lines) { line ->
-                Text(
-                    text = line,
-                    color = TerminalText,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 隐藏的输入框 - 捕获键盘输入透传到 SSH
+        BasicTextField(
+            value = "",
+            onValueChange = { newValue ->
+                if (newValue.isNotEmpty()) {
+                    onSendRaw(newValue.last().toString())
+                }
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
+                .onKeyEvent { event ->
+                    onKeyEvent(event.nativeKeyEvent)
+                },
+            textStyle = TextStyle(color = Color.Transparent, fontSize = 1.sp),
+            cursorBrush = SolidColor(Color.Transparent),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            singleLine = true
+        )
 
-        if (enabled) {
-            // Inline terminal input line: looks like a real shell prompt.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(TerminalBackground)
-                    .border(
-                        width = 1.dp,
-                        color = NeonGreen.copy(alpha = 0.30f),
-                        shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
-                    )
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .clickable { focusRequester.requestFocus() },
-                verticalAlignment = Alignment.CenterVertically
+        // 终端输出区（可长按选择复制）
+        SelectionContainer {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp)
             ) {
-                Text(
-                    text = "$ ",
-                    color = NeonGreen,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp
-                )
-                BasicTextField(
-                    value = input,
-                    onValueChange = { newValue ->
-                        if (newValue.length > input.length) {
-                            val added = newValue.substring(input.length)
-                            added.forEach { char ->
-                                onSendRaw(char.toString())
-                            }
-                        } else if (newValue.length < input.length) {
-                            repeat(input.length - newValue.length) {
-                                onSendRaw("\u007F")
-                            }
-                        }
-                        input = newValue
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { event ->
-                            val handled = onKeyEvent(event.nativeKeyEvent)
-                            if (handled && event.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
-                                input = ""
-                            }
-                            handled
-                        },
-                    textStyle = TextStyle(
+                items(lines) { line ->
+                    Text(
+                        text = line,
                         color = TerminalText,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp
-                    ),
-                    cursorBrush = SolidColor(TerminalCursor),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Ascii,
-                        imeAction = ImeAction.Send
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            onSendRaw("\r")
-                            input = ""
-                        }
-                    ),
-                    singleLine = true
-                )
+                        fontSize = 13.sp,
+                        lineHeight = 16.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
