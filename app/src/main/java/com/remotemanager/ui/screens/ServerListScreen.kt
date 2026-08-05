@@ -134,7 +134,8 @@ fun ServerListScreen(
                         ServerCard(
                             server = server,
                             isSelected = server.id == selectedServerId,
-                            onClick = { onServerClick(server) }
+                            onClick = { onServerClick(server) },
+                            onInfoClick = { onServerInfo(server.id) }
                         )
                     }
                 }
