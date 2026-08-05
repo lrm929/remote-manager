@@ -1,6 +1,11 @@
 package com.remotemanager.ui.screens.rdp
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -42,8 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remotemanager.data.model.Server
 import com.remotemanager.data.repository.ServerRepository
-import com.remotemanager.rdp.FreeRdpBridge
-import com.remotemanager.rdp.launchRdp
+import androidx.core.content.FileProvider
 import com.remotemanager.ui.theme.NeonPink
 import com.remotemanager.ui.theme.TechBorder
 import com.remotemanager.ui.theme.TechPanel
@@ -52,6 +56,7 @@ import com.remotemanager.ui.theme.TerminalError
 import com.remotemanager.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.get
+import java.io.File
 
 sealed class RdpUiState {
     data object Loading : RdpUiState()
@@ -143,11 +148,9 @@ fun RdpSessionScreen(
                     }
                 }
                 is RdpUiState.Ready -> {
-                    BuiltInRdpPlaceholder(
+                    ExternalRdpLauncher(
                         server = state.server,
-                        onLaunchExternal = {
-                            launchRdp(context, state.server)
-                        }
+                        context = context
                     )
                 }
             }
@@ -156,41 +159,79 @@ fun RdpSessionScreen(
 }
 
 @Composable
-private fun BuiltInRdpPlaceholder(
+private fun ExternalRdpLauncher(
     server: Server,
-    onLaunchExternal: () -> Unit
+    context: Context
 ) {
-    var connecting by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    var launching by remember { mutableStateOf(false) }
+    var showInstallOptions by remember { mutableStateOf(false) }
 
-    LaunchedEffect(connecting) {
-        if (connecting) {
-            delay(400)
-            val result = FreeRdpBridge.connect(
-                host = server.host,
-                port = server.port,
-                username = server.username,
-                password = server.password,
-                domain = null,
-                width = server.rdpWidth ?: 1280,
-                height = server.rdpHeight ?: 720,
-                colorDepth = server.rdpColorDepth,
-                useNla = server.useNla
+    if (showInstallOptions) {
+        InstallClientPrompt(context = context)
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Computer,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = NeonPink.copy(alpha = 0.6f)
             )
-            result.onSuccess {
-                // TODO: 当 FreeRDP native 库就绪后，在此处切换到 SurfaceView 渲染。
-            }.onFailure { error ->
-                Toast.makeText(
-                    context,
-                    "内置 RDP 引擎未就绪：${error.message}，尝试唤起外部客户端",
-                    Toast.LENGTH_LONG
-                ).show()
-                onLaunchExternal()
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "${server.username}@${server.host}:${server.port}",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "点击下方按钮启动远程桌面连接。\n需要先安装 aFreeRDP 或 Microsoft 远程桌面客户端。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    launching = true
+                    tryLaunchExternalRdp(context, server, onSuccess = { launching = false }, onNoClient = {
+                        launching = false
+                        showInstallOptions = true
+                    })
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NeonPink.copy(alpha = 0.18f),
+                    contentColor = NeonPink
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, NeonPink.copy(alpha = 0.50f))
+            ) {
+                if (launching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = NeonPink,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("启动 RDP 连接")
+                }
             }
-            connecting = false
         }
     }
+}
 
+@Composable
+private fun InstallClientPrompt(context: Context) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -201,49 +242,121 @@ private fun BuiltInRdpPlaceholder(
         Icon(
             imageVector = Icons.Default.Computer,
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = NeonPink.copy(alpha = 0.6f)
+            modifier = Modifier.size(64.dp),
+            tint = TerminalError
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "${server.username}@${server.host}:${server.port}",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            text = "未找到 RDP 客户端",
+            style = MaterialTheme.typography.titleMedium,
+            color = TerminalError,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "内置 RDP 客户端正在接入 FreeRDP 原生渲染引擎。\n当前版本先通过外部客户端完成连接，后续更新将完全在 App 内渲染远程桌面。",
+            text = "请安装以下任一客户端后重试：",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary,
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp
+            textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
         Button(
-            onClick = { connecting = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = NeonPink.copy(alpha = 0.18f),
-                contentColor = NeonPink
-            ),
+            onClick = {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.freerdp.afreerdp")))
+                } catch (_: ActivityNotFoundException) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.freerdp.afreerdp")))
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = NeonPink.copy(alpha = 0.15f), contentColor = NeonPink),
             shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                NeonPink.copy(alpha = 0.50f)
-            )
+            border = BorderStroke(1.dp, TechBorder)
         ) {
-            if (connecting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = NeonPink,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("连接远程桌面")
-            }
+            Text("安装 aFreeRDP（免费）", fontSize = 13.sp)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=ms.remote.desktop")))
+                } catch (_: ActivityNotFoundException) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=ms.remote.desktop")))
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = NeonPink.copy(alpha = 0.15f), contentColor = NeonPink),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, TechBorder)
+        ) {
+            Text("MS 远程桌面", fontSize = 13.sp)
         }
     }
+}
+
+private fun tryLaunchExternalRdp(
+    context: Context,
+    server: Server,
+    onSuccess: () -> Unit,
+    onNoClient: () -> Unit
+) {
+    // 方式1：尝试用 rdp:// URI 唤起
+    val rdpUri = "rdp://${server.username}:${server.password}@${server.host}:${server.port}"
+    val rdpIntent = Intent(Intent.ACTION_VIEW, Uri.parse(rdpUri)).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    try {
+        context.startActivity(rdpIntent)
+        onSuccess()
+        return
+    } catch (_: ActivityNotFoundException) {
+        // rdp:// 不被支持，尝试方式2
+    }
+
+    // 方式2：生成 .rdp 文件并打开
+    try {
+        val rdpFile = generateRdpFile(context, server)
+        val fileUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            rdpFile
+        )
+        val fileIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(fileUri, "application/x-rdp")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(fileIntent)
+        onSuccess()
+    } catch (_: ActivityNotFoundException) {
+        // 没有能打开 .rdp 文件的应用
+        onNoClient()
+    }
+}
+
+private fun generateRdpFile(context: Context, server: Server): File {
+    val rdpContent = buildString {
+        println("full address:s:${server.host}:${server.port}")
+        println("username:s:${server.username}")
+        if (!server.password.isNullOrBlank()) {
+            println("password:s:${server.password}")
+        }
+        println("desktopwidth:i:${server.rdpWidth ?: 1280}")
+        println("desktopheight:i:${server.rdpHeight ?: 720}")
+        println("session bpp:i:${server.rdpColorDepth}")
+        if (server.useNla) {
+            println("authentication level:i:2")
+        }
+        println("compression:i:1")
+        println("displayconnectionbar:i:1")
+    }
+
+    val rdpDir = File(context.filesDir, "rdp").also { it.mkdirs() }
+    val rdpFile = File(rdpDir, "${server.name ?: "connection"}.rdp")
+    rdpFile.writeText(rdpContent)
+    return rdpFile
 }
