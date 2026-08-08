@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.NavigateNext
+import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
@@ -438,7 +438,7 @@ private fun TechButton(
         Text(label, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.weight(1f))
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.NavigateNext,
+            imageVector = Icons.Filled.NavigateNext,
             contentDescription = null,
             modifier = Modifier.size(22.dp),
             tint = containerColor.copy(alpha = 0.7f)
